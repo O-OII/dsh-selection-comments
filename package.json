@@ -1,0 +1,72 @@
+{
+  "name": "@o-oii/dsh-selection-comments",
+  "version": "0.3.0",
+  "type": "module",
+  "description": "Anchored conversation comments for DeepSeek Harness, with compact draft references, tab-scoped recovery, and English/Chinese UI.",
+  "license": "MIT",
+  "author": "O-OII",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/O-OII/dsh-selection-comments.git"
+  },
+  "homepage": "https://github.com/O-OII/dsh-selection-comments#readme",
+  "bugs": {
+    "url": "https://github.com/O-OII/dsh-selection-comments/issues"
+  },
+  "keywords": [
+    "dsh-plugin",
+    "deepseek-harness",
+    "annotation",
+    "comments",
+    "i18n"
+  ],
+  "engines": {
+    "node": ">=22",
+    "dsh": ">=0.2.1-rc.2 <0.3.0"
+  },
+  "main": "./index.mjs",
+  "exports": {
+    ".": "./index.mjs",
+    "./client": "./lib/client.js",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "index.mjs",
+    "lib/client.js",
+    "locale",
+    "cordis.patch.yml",
+    "README.md",
+    "README.zh-CN.md",
+    "LICENSE",
+    "docs/compatibility.md",
+    "docs/privacy.md",
+    "docs/images",
+    "CONTRIBUTING.md",
+    "SECURITY.md",
+    "CHANGELOG.md"
+  ],
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "check": "node scripts/build.mjs --check && node --check index.mjs && node --check lib/client.js",
+    "test": "node --test test/selection-comment.test.mjs test/release.test.mjs",
+    "test:browser": "node test/browser-harness.mjs",
+    "pack:smoke": "node scripts/pack-smoke.mjs"
+  },
+  "devDependencies": {
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "inject": [
+        "@deepseek-ai/dsh-client-ui-conversation",
+        "@deepseek-ai/dsh-client-ui-input-trigger",
+        "@deepseek-ai/dsh-client-locale"
+      ]
+    }
+  }
+}

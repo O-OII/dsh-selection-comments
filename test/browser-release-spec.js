@@ -1,0 +1,67 @@
+async () => {
+  const sleep = ms => new Promise(resolve => setTimeout(resolve, ms))
+  const results = []
+  const check = (name, value) => { results.push({ name, pass: !!value }); if (!value) throw new Error(name) }
+  for (let i = 0; i < 100 && (!window.commentDemo || document.querySelectorAll('[data-selection-comment-ui]').length !== 2); i++) await sleep(20)
+  const demo = window.commentDemo, api = demo.api
+  const hosts = () => [...document.querySelectorAll('[data-selection-comment-ui]')]
+  const shadows = () => hosts().map(host => host.shadowRoot)
+  const visibleButtons = () => shadows().map(shadow => shadow.querySelector('.sc-button')).filter(button => !button.hidden)
+  const currentShadow = () => shadows().find(shadow => !shadow.querySelector('.sc-backdrop').hidden)
+  check('real React slot contribution mounted two seat-scoped overlays', hosts().length === 2)
+  const chosenA = demo.select('public-demo-A', 'main', 24, 40)
+  await sleep(70)
+  check('only the selected pane shows the action', visibleButtons().length === 1)
+  visibleButtons()[0].click(); await sleep(40)
+  let shadow = currentShadow()
+  check('editor opens with the selected original text', shadow.querySelector('.sc-quote').textContent === chosenA.text.trim())
+  const note = shadow.querySelector('.sc-note')
+  note.value = 'Unsent comment survives a language change'
+  demo.setLocale('zh-CN'); await sleep(60)
+  check('open editor follows the DSH locale service', shadow.querySelector('.sc-title').textContent === '添加注释')
+  check('locale change preserves unsaved input', note.value === 'Unsent comment survives a language change')
+  check('modal makes underlying app inert', document.getElementById('app').inert === true)
+  check('create editor receives keyboard focus', shadow.activeElement === note)
+  note.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', ctrlKey: true, isComposing: true, bubbles: true, composed: true }))
+  await sleep(20)
+  check('IME composition does not submit the comment', api.listAnnotations('public-demo-A').length === 0)
+  demo.stores[0].set({ phase: 'submitting' }); await sleep(30)
+  shadow.querySelector('[data-sc-action="save"]').click(); await sleep(20)
+  check('busy input cannot create or change a comment', api.listAnnotations('public-demo-A').length === 0 && !shadow.querySelector('.sc-error').hidden)
+  demo.stores[0].set({ phase: 'plain' }); await sleep(30)
+  shadow.querySelector('[data-sc-action="save"]').click(); await sleep(80)
+  check('only pane A received its reference', demo.stores[0].get().occurrences.length === 1 && demo.stores[1].get().occurrences.length === 0)
+  check('modal cleanup restores underlying inert state', document.getElementById('app').inert === false)
+  const first = api.listAnnotations('public-demo-A')[0]
+  const serialized = await demo.sources.get('selection-comment').codec.serialize(first.ref)
+  check('codec includes original quote and full edited comment', serialized.includes(chosenA.text.trim()) && serialized.includes('Unsent comment survives'))
+  check('draft remains compact', !demo.stores[0].get().draft.includes('Unsent comment survives'))
+  const before = demo.stores[0].get().draft
+  const offset = demo.stores[0].get().occurrences[0].offset
+  demo.setLocale('en'); await sleep(80)
+  check('existing semantic chip labels follow locale without changing offsets', demo.stores[0].get().occurrences[0].label === 'Comment 1' && demo.stores[0].get().draft === before && demo.stores[0].get().occurrences[0].offset === offset)
+  const chip = document.querySelector('[data-demo-pane="public-demo-A"] .chip')
+  chip.focus(); chip.click(); await sleep(40)
+  shadow = currentShadow(); shadow.querySelector('[data-sc-action="list"]').click(); await sleep(50)
+  check('all-comments list is reachable without restoring a footer', shadow.querySelector('.sc-title').textContent === 'Comments')
+  check('list opening moves focus inside the dialog', shadow.querySelector('.sc-dialog').contains(shadow.activeElement))
+  let escaped = false
+  const listener = event => { if (event.key === 'Escape') escaped = true }
+  document.addEventListener('keydown', listener)
+  shadow.activeElement.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, composed: true }))
+  document.removeEventListener('keydown', listener)
+  await sleep(40)
+  check('Escape closes the modal without reaching background shortcuts', !currentShadow() && !escaped)
+  check('focus returns to the original reference chip', document.activeElement === chip)
+  demo.select('public-demo-B', 'main', 24, 40); await sleep(70)
+  check('pane B selection still produces only one action', visibleButtons().length === 1)
+  visibleButtons()[0].click(); await sleep(40); shadow = currentShadow()
+  shadow.querySelector('.sc-note').value = '<img src=x onerror="window.unwanted=true"> & second comment'
+  shadow.querySelector('[data-sc-action="save"]').click(); await sleep(80)
+  check('two panes maintain independent numbering and reference stores', api.listAnnotations('public-demo-A').length === 1 && api.listAnnotations('public-demo-B').length === 1 && api.listAnnotations('public-demo-B')[0].number === 1)
+  const second = api.listAnnotations('public-demo-B')[0]
+  const contextB = await demo.sources.get('selection-comment').codec.serialize(second.ref)
+  check('HTML and XML delimiters are text, never executable DOM', !window.unwanted && contextB.includes('&lt;img') && contextB.includes('&amp; second'))
+  check('production registration still has no composer footer status', !document.querySelector('[data-selection-comment-status-slot]'))
+  return { checkCount: results.length, results, drafts: demo.stores.map(store => store.get()), refs: [first.ref, second.ref] }
+}

@@ -1,0 +1,44 @@
+name: CI
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  unit-and-package:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        node: [22, 24]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: npm run check
+      - run: npm test
+      - run: npm run pack:smoke
+  chromium-fixtures:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - name: Run real client in synthetic browser adapters
+        shell: bash
+        run: |
+          google-chrome --headless=new --disable-gpu --no-sandbox --remote-debugging-address=127.0.0.1 --remote-debugging-port=9333 --user-data-dir="$RUNNER_TEMP/comment-fixture" --allow-file-access-from-files about:blank >"$RUNNER_TEMP/comment-browser.log" 2>&1 &
+          browser_pid=$!
+          trap 'kill "$browser_pid" || true' EXIT
+          for attempt in $(seq 1 50); do
+            if curl --fail --silent http://127.0.0.1:9333/json/version >/dev/null; then break; fi
+            sleep 0.2
+          done
+          npm run test:browser

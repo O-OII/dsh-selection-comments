@@ -1,0 +1,35 @@
+import assert from 'node:assert/strict'
+import fs from 'node:fs'
+import path from 'node:path'
+import { execFileSync } from 'node:child_process'
+import { fileURLToPath, pathToFileURL } from 'node:url'
+import { gunzipSync } from 'node:zlib'
+const root = fileURLToPath(new URL('../', import.meta.url))
+const out = path.join(root, '.pack-smoke')
+fs.mkdirSync(out, { recursive: true })
+assert.ok(process.env.npm_execpath, 'Run through npm run pack:smoke')
+const metadata = JSON.parse(execFileSync(process.execPath, [process.env.npm_execpath, 'pack', '--ignore-scripts', '--json', '--pack-destination', out], { cwd: root, encoding: 'utf8' }))[0]
+const names = metadata.files.map(file => file.path)
+for (const name of names) {
+  assert.match(name, /^(index\.mjs|lib\/client\.js|locale\/(en|zh)\.json|cordis\.patch\.yml|package\.json|README(?:\.zh-CN)?\.md|LICENSE|CONTRIBUTING\.md|SECURITY\.md|CHANGELOG\.md|docs\/(compatibility|privacy)\.md|docs\/images\/[a-zA-Z0-9_.-]+\.png)$/)
+  assert.doesNotMatch(name, /status|verification|credentials|backup|\.env|node_modules/i)
+}
+for (const name of ['index.mjs', 'lib/client.js', 'LICENSE', 'cordis.patch.yml', 'locale/en.json', 'locale/zh.json']) assert.ok(names.includes(name), name)
+const tar = gunzipSync(fs.readFileSync(path.join(out, metadata.filename)))
+let at = 0
+while (at + 512 <= tar.length) {
+  const header = tar.subarray(at, at + 512)
+  const name = header.subarray(0, 100).toString().replace(/\0.*$/s, '')
+  if (!name) break
+  const size = parseInt(header.subarray(124, 136).toString().replace(/\0.*$/s, '').trim() || '0', 8)
+  assert.ok(name.startsWith('package/') && !name.includes('..') && !name.includes('\\'), name)
+  if (header[156] === 0 || header[156] === 48) {
+    const dest = path.join(out, name)
+    fs.mkdirSync(path.dirname(dest), { recursive: true })
+    fs.writeFileSync(dest, tar.subarray(at + 512, at + 512 + size))
+  }
+  at += 512 + Math.ceil(size / 512) * 512
+}
+const entry = await import(pathToFileURL(path.join(out, 'package/index.mjs')).href)
+assert.equal(typeof entry.apply, 'function')
+console.log(`Pack smoke OK: ${names.length} files, ${metadata.size} compressed bytes`)

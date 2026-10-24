@@ -1,0 +1,16 @@
+node_modules/
+*.tgz
+.pack-smoke/
+coverage/
+.DS_Store
+Thumbs.db
+*.log
+*.status.json
+runtime-status.json
+.env
+.env.*
+!.env.example
+*.bak
+*.bak-*
+verification/
+*.session.json

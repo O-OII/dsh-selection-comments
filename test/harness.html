@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>selection-comment browser harness</title>
+    <style>
+      body { margin: 0; padding: 24px; font: 14px/1.6 system-ui, sans-serif; background: #fff; }
+      [data-conversation-scroll] { height: 420px; overflow: auto; border: 1px solid #ddd; padding: 16px; }
+      [data-chat-flow] { max-width: 720px; }
+      [data-chat-flow-kind] { margin: 12px 0; }
+      [data-composer-seat] { margin-top: 16px; border: 1px solid #ddd; padding: 12px; }
+      [data-composer-input] { min-height: 48px; border: 1px dashed #bbb; padding: 8px; white-space: pre-wrap; }
+      [data-composer-dock] { margin-top: 8px; min-height: 26px; }
+      .spacer { height: 620px; }
+    </style>
+  </head>
+  <body>
+    <main data-conversation-scroll>
+      <div data-chat-flow>
+        <div data-chat-flow-kind="user" data-chat-turn="1">
+          <p id="user-message">User asks about the deployment checklist.</p>
+        </div>
+        <div data-chat-flow-kind="assistant" data-chat-turn="1">
+          <p id="assistant-message">The quick brown fox jumps over the lazy dog.</p>
+          <pre><code id="code-message">const answer = 42;</code></pre>
+        </div>
+        <div class="spacer" aria-hidden="true"></div>
+      </div>
+    </main>
+    <section data-composer-seat>
+      <div data-composer-input contenteditable="true"><span id="composer-text">existing draft</span></div>
+      <div data-composer-dock></div>
+    </section>
+
+    <script>
+      window.__selectionCommentDefinition = null;
+      window.__ModuleLoader__ = {
+        load(definition) {
+          window.__selectionCommentDefinition = definition;
+        },
+      };
+    </script>
+    <script src="../lib/client.js"></script>
+    <script>
+      window.__selectionCommentPlugin = window.__selectionCommentDefinition.factory((id) => {
+        if (id === 'react') {
+          return {
+            createElement() {},
+            useEffect() {},
+            useRef() {},
+          };
+        }
+        throw new Error(`unexpected external module: ${id}`);
+      });
+      const plugin = window.__selectionCommentPlugin;
+      plugin.__test.setLocale('zh');
+      const testApi = plugin.__test;
+      const sessionId = 'synthetic-session-A';
+      window.__input = { phase: 'plain', draft: 'existing draft', occurrences: [] };
+      window.__draft = window.__input.draft;
+      window.__setDraftCalls = [];
+      window.__source = testApi.createSelectionCommentSource();
+
+      function renderComposer() {
+        window.__draft = window.__input.draft;
+        document.getElementById('composer-text').textContent = window.__input.draft;
+      }
+
+      window.__harness = {
+        sessionId,
+        setInput(patch) {
+          window.__input = { ...window.__input, ...patch };
+          renderComposer();
+          if (window.__status !== undefined) window.__status.refresh();
+        },
+        setPhase(phase) {
+          window.__input = { ...window.__input, phase };
+        },
+        getInput() {
+          return window.__input;
+        },
+        disposeOverlay() {
+          window.__overlay?.dispose();
+          window.__overlay = undefined;
+        },
+        createOverlay(id = sessionId) {
+          window.__overlay = testApi.createSelectionCommentOverlay({
+            sessionId: id,
+            getInput: () => window.__input,
+            setDraft: (value) => {
+              window.__setDraftCalls.push(JSON.parse(JSON.stringify(value)));
+              if (typeof value === 'string') {
+                window.__input = { ...window.__input, draft: value, occurrences: [] };
+              } else {
+                window.__input = {
+                  ...window.__input,
+                  draft: value.text,
+                  occurrences: (value.references ?? []).map((reference) => ({ ...reference })),
+                  ...(value.command === undefined ? {} : { claim: { token: value.command.token } }),
+                };
+              }
+              renderComposer();
+              if (window.__status !== undefined) window.__status.refresh();
+            },
+          });
+          return window.__overlay;
+        },
+        syncStatus() {
+          testApi.syncAnnotationStatuses(sessionId, window.__input);
+          window.__status?.refresh();
+        },
+      };
+
+      window.__overlay = window.__harness.createOverlay();
+      window.__status = testApi.createComposerStatus({
+        sessionId,
+        getInput: () => window.__input,
+        requestUi: (request) => testApi.requestAnnotationUi(sessionId, request),
+      });
+      document.querySelector('[data-composer-dock]').append(window.__status.element);
+    </script>
+  </body>
+</html>
