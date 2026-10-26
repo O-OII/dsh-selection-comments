@@ -83,8 +83,11 @@
     document.getElementById('intro').textContent = zh ? '选择原文 → 添加注释 → 查看紧凑引用 → 提交上下文。' : 'Select text → add a comment → review compact references → submit.'
     document.getElementById('seed').textContent = zh ? '展示示例' : 'Show example'
     document.getElementById('language').textContent = zh ? 'English' : '简体中文'
-    document.getElementById('disclaimer').textContent = zh ? '交互夹具，不是运行中 DSH 会话的截图。' : 'Interactive fixture, not a screenshot of a running DSH session.'
-    document.getElementById('evidence').textContent = zh ? '加载真实插件客户端和 React dock；正文、输入桥接和语言服务为合成适配，不请求模型。' : 'Uses the actual plugin bundle and React dock, with synthetic transcript/input/locale adapters. No model requests.'
+    const panesLink = document.getElementById('panes-link')
+    panesLink.textContent = zh ? '双会话' : 'Two panes'
+    panesLink.href = `?lang=${language}&locale=${api.getLocalePreference()}&dual=1`
+    document.getElementById('disclaimer').textContent = zh ? '公开合成演示，非真实 DSH 会话。' : 'Public synthetic demo, not a live DSH session.'
+    document.getElementById('evidence').textContent = zh ? '真实插件 + React；示例数据，不请求模型。' : 'Real plugin + React; sample data, no model requests.'
   }
   const setLocale = value => { language = value; for (const fn of localeListeners) fn(); chromeText() }
   const select = (id, which = 'main', start = 0, end) => {

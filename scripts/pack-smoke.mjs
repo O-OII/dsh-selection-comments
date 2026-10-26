@@ -5,14 +5,15 @@ import { execFileSync } from 'node:child_process'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import { gunzipSync } from 'node:zlib'
 import vm from 'node:vm'
+import { createRequire } from 'node:module'
 const root = fileURLToPath(new URL('../', import.meta.url))
-const out = path.join(root, '.pack-smoke')
+const out = process.env.DSH_PACK_SMOKE_OUT ? path.resolve(process.env.DSH_PACK_SMOKE_OUT) : path.join(root, '.pack-smoke')
 fs.mkdirSync(out, { recursive: true })
 assert.ok(process.env.npm_execpath, 'Run through npm run pack:smoke')
 const metadata = JSON.parse(execFileSync(process.execPath, [process.env.npm_execpath, 'pack', '--ignore-scripts', '--json', '--pack-destination', out], { cwd: root, encoding: 'utf8' }))[0]
 const names = metadata.files.map(file => file.path)
 for (const name of names) {
-  assert.match(name, /^(index\.mjs|lib\/client\.js|locale\/(en|zh)\.json|cordis\.patch\.yml|package\.json|README(?:\.zh-CN)?\.md|LICENSE|CONTRIBUTING\.md|SECURITY\.md|CHANGELOG\.md|docs\/(compatibility|privacy)\.md|docs\/images\/[a-zA-Z0-9_.-]+\.png)$/)
+  assert.match(name, /^(index\.mjs|lib\/client\.js|locale\/(?:display\/)?(en|zh)\.json|cordis\.patch\.yml|package\.json|README(?:\.zh-CN)?\.md|LICENSE|CONTRIBUTING\.md|SECURITY\.md|CHANGELOG\.md|docs\/(compatibility|privacy|usage|development|scope)\.md|docs\/images\/[a-zA-Z0-9_.-]+\.png)$/)
   assert.doesNotMatch(name, /status|verification|credentials|backup|\.env|node_modules/i)
 }
 for (const name of ['index.mjs', 'lib/client.js', 'LICENSE', 'cordis.patch.yml', 'locale/en.json', 'locale/zh.json']) assert.ok(names.includes(name), name)
@@ -35,6 +36,20 @@ const entry = await import(pathToFileURL(path.join(out, 'package/index.mjs')).hr
 assert.equal(typeof entry.apply, 'function')
 const packed = JSON.parse(fs.readFileSync(path.join(out, 'package/package.json'), 'utf8'))
 const lock = JSON.parse(fs.readFileSync(path.join(root, 'package-lock.json'), 'utf8'))
+const packedRequire = createRequire(path.join(out, 'package/package.json'))
+assert.equal(packedRequire.resolve(`${packed.name}/package.json`), path.join(out, 'package/package.json'))
+for (const [code, title] of [['en', 'Selection Comments'], ['zh', '选区注释']]) {
+  const resolved = packedRequire.resolve(`${packed.name}/locale/${code}.json`)
+  assert.equal(resolved, path.join(out, 'package/locale/display', `${code}.json`))
+  const display = JSON.parse(fs.readFileSync(resolved, 'utf8'))
+  assert.equal(display.meta.title, title)
+  assert.equal(typeof display.meta.description, 'string')
+  assert.ok(display.meta.description.trim())
+  const messages = JSON.parse(fs.readFileSync(path.join(out, 'package/locale', `${code}.json`), 'utf8'))
+  assert.equal(typeof messages.addTitle, 'string')
+  assert.equal(messages.meta, undefined, 'Display metadata must not enter runtime UI dictionaries')
+}
+assert.deepEqual(fs.readFileSync(path.join(out, 'package/lib/client.js')), fs.readFileSync(path.join(root, 'lib/client.js')), 'Packaging must not change the generated client')
 assert.equal(packed.version, '0.3.1')
 assert.equal(metadata.version, packed.version)
 assert.equal(lock.version, packed.version)

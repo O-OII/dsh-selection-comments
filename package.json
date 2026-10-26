@@ -28,7 +28,8 @@
   "exports": {
     ".": "./index.mjs",
     "./client": "./lib/client.js",
-    "./package.json": "./package.json"
+    "./package.json": "./package.json",
+    "./locale/*.json": "./locale/display/*.json"
   },
   "files": [
     "index.mjs",
@@ -40,6 +41,9 @@
     "LICENSE",
     "docs/compatibility.md",
     "docs/privacy.md",
+    "docs/usage.md",
+    "docs/development.md",
+    "docs/scope.md",
     "docs/images",
     "CONTRIBUTING.md",
     "SECURITY.md",

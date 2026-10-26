@@ -39,3 +39,11 @@ The browser script loads local fixture files, not the existing DSH URL. A real-h
 `apply(ctx, { locale })` 是底层客户端组合参数，不保证 profile/服务端配置会传入浏览器；普通用户可用现有注释弹窗标题旁的小选择器。选择只存于客户端实例内存，刷新/HMR 后恢复组合配置默认值。本轮不新增持久化，也不修改安装或 profile。
 
 所有浏览器检查的正文、输入/语言/宿主适配仍为合成；不能据此保证实际 DSH 发送 sink、远端模型、所有平台或新版本均已验收。当前 Actions 结果应以 GitHub 实际运行记录为准。真实部署请另在隔离 profile 检查，不动现用配置来演示，不未经同意调用收费模型。
+
+## Documentation refresh / 文档刷新（2026-10-27）
+
+The bilingual README refresh adds six reproducible 1280 × 820 screenshots: selection action + badges/references, editor with language selector, and all-comments manager, each in Chinese and English. Twenty new structured-MCP acceptance assertions passed through visible add/edit/list actions and local quote+note codec expansion. The actual plugin bundle and React dock ran with public synthetic transcript/input/locale services; no installed DSH transport, real profile or model request was used. Reproduction steps are in [development and screenshots](development.md).
+
+The existing 37 Node tests and `npm run check` passed again. The updated pack smoke checked 25 published files, the new documentation whitelist, display-only `meta.title` / `meta.description` locale exports via Node resolution, unchanged UI dictionaries, version 0.3.1/lock parity and byte-identical packed client code. It did not verify the metadata's visual presentation in an installed host. The 76/28/4 browser suites and 18-file package result in the earlier table are historical results, not reruns or the current package file count.
+
+本轮六张截图由真实组件与公开合成数据生成，20 项新增浏览器断言通过；现有 37 项 Node 测试与 check 再次通过。更新后的打包 smoke 通过 25 文件白名单、展示元信息 export 的 Node 解析、UI 字典隔离与客户端字节一致性验证，版本保持 0.3.1。未验收真实宿主中的元信息视觉呈现或实际发送；上表的 76/28/4 浏览器结果和 18 文件打包结果为历史记录，本轮没有重跑这些完整浏览器套件。
