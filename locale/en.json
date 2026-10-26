@@ -1,4 +1,6 @@
 {
+  "language": "Comment UI language",
+  "languageAuto": "Follow DSH",
   "annotate": "Comment",
   "annotateTitle": "Add a comment to the selected text",
   "addTitle": "Add comment",

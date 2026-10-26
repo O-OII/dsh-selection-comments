@@ -4,6 +4,7 @@ import path from 'node:path'
 import { execFileSync } from 'node:child_process'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import { gunzipSync } from 'node:zlib'
+import vm from 'node:vm'
 const root = fileURLToPath(new URL('../', import.meta.url))
 const out = path.join(root, '.pack-smoke')
 fs.mkdirSync(out, { recursive: true })
@@ -32,4 +33,23 @@ while (at + 512 <= tar.length) {
 }
 const entry = await import(pathToFileURL(path.join(out, 'package/index.mjs')).href)
 assert.equal(typeof entry.apply, 'function')
+const packed = JSON.parse(fs.readFileSync(path.join(out, 'package/package.json'), 'utf8'))
+const lock = JSON.parse(fs.readFileSync(path.join(root, 'package-lock.json'), 'utf8'))
+assert.equal(packed.version, '0.3.1')
+assert.equal(metadata.version, packed.version)
+assert.equal(lock.version, packed.version)
+assert.equal(lock.packages[''].version, packed.version)
+let definition
+vm.runInNewContext(fs.readFileSync(path.join(out, 'package/lib/client.js'), 'utf8'), {
+  window: { __ModuleLoader__: { load(value) { definition = value } } },
+})
+const client = definition.factory(id => { assert.equal(id, 'react'); return {} })
+assert.equal(client.getLocalePreference(), 'zh-CN')
+assert.equal(client.__test.t('save'), '保存')
+client.setLocalePreference('en'); assert.equal(client.__test.t('save'), 'Save')
+client.setLocalePreference('auto'); assert.equal(client.__test.t('save'), '保存')
+const off = client.__test.attachLocale({ getSnapshot: () => ({ active: 'en' }) })
+assert.equal(client.__test.t('save'), 'Save')
+off(); assert.equal(client.__test.t('save'), '保存')
+client.setLocalePreference('unsupported'); assert.equal(client.__test.t('save'), '保存')
 console.log(`Pack smoke OK: ${names.length} files, ${metadata.size} compressed bytes`)

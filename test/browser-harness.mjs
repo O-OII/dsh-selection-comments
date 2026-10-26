@@ -55,6 +55,8 @@ function send(method, params = {}) {
 
 try {
   await send('Runtime.enable')
+  const browser = await send('Browser.getVersion')
+  await send('Network.setUserAgentOverride', { userAgent: browser.userAgent, acceptLanguage: 'en-US' })
   await send('Page.enable')
 
   for (let attempt = 0; attempt < 100; attempt += 1) {
@@ -168,6 +170,7 @@ try {
         await sleep(80);
       };
 
+      check('Chinese is the unconfigured default on an English page', document.documentElement.lang === 'en' && /^en/i.test(navigator.language) && api.getLocalePreference() === 'zh-CN' && getShadow().querySelector('.sc-button').textContent === '注释');
       check('button starts hidden', getShadow().querySelector('.sc-button').hidden === true);
       check('status starts empty', statusText() === '', JSON.stringify(statusText()));
       const initialStatus = statusVisibility();
@@ -364,6 +367,31 @@ try {
   if (releaseResult.exceptionDetails) throw new Error(releaseResult.exceptionDetails.exception?.description ?? releaseResult.exceptionDetails.text)
   assert.ok(releaseResult.result.value.results.every(item => item.pass))
   console.log(JSON.stringify({ scope: 'React dock with synthetic host adapters', ...releaseResult.result.value }, null, 2))
+  await send('Page.reload')
+  for (let attempt = 0; attempt < 100; attempt += 1) {
+    try {
+      const ready = await send('Runtime.evaluate', { expression: 'Boolean(window.commentDemo && document.querySelectorAll("[data-selection-comment-ui]").length === 2)', returnByValue: true })
+      if (ready.result?.value === true) break
+    } catch { /* Reload may replace the execution context between probes. */ }
+    await new Promise(resolveWait => setTimeout(resolveWait, 50))
+  }
+  const restored = await send('Runtime.evaluate', {
+    expression: `(async () => {
+      const demo = window.commentDemo, api = demo.api, results = [];
+      const check = (name, value) => { results.push({ name, pass: !!value }); if (!value) throw new Error(name); };
+      check('reload resets transient auto preference to the Chinese composition default', api.getLocalePreference() === 'zh-CN' && api.t('save') === '保存');
+      check('reload remains Chinese with an English browser and host', /^en/i.test(navigator.language) && document.documentElement.lang === 'en');
+      const annotations = demo.stores.map(store => api.listAnnotations(store.id));
+      check('same-tab reload restores both sessions annotations', annotations.every(items => items.length === 1));
+      const contexts = await Promise.all(annotations.flat().map(item => demo.sources.get('selection-comment').codec.serialize(item.ref)));
+      check('restored references retain full original notes', contexts[0].includes('Unsent comment survives') && contexts[1].includes('&amp; second comment'));
+      return { checkCount: results.length, results };
+    })()`,
+    awaitPromise: true, returnByValue: true,
+  })
+  if (restored.exceptionDetails) throw new Error(restored.exceptionDetails.exception?.description ?? restored.exceptionDetails.text)
+  assert.ok(restored.result.value.results.every(item => item.pass))
+  console.log(JSON.stringify({ scope: 'same-tab reload with synthetic host adapters', ...restored.result.value }, null, 2))
 } finally {
   socket.close()
 }

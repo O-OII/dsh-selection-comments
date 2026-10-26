@@ -38,7 +38,7 @@ function loadBundle() {
     }
     throw new Error(`unexpected external module: ${id}`)
   })
-  plugin.__test.setLocale('zh')
+  assert.equal(plugin.__test.t('addTitle'), '添加注释')
   return plugin
 }
 
@@ -87,7 +87,10 @@ test('host half imports without side effects', () => {
 
 test('package and bundle identities line up for the DSH client scanner', () => {
   assert.equal(packageJson.name, '@o-oii/dsh-selection-comments')
-  assert.equal(packageJson.version, '0.3.0')
+  assert.equal(packageJson.version, '0.3.1')
+  const lock = JSON.parse(readFileSync(new URL('../package-lock.json', import.meta.url), 'utf8'))
+  assert.equal(lock.version, packageJson.version)
+  assert.equal(lock.packages[''].version, packageJson.version)
   assert.equal(packageJson.dsh.client.platform, 'web')
   assert.ok(packageJson.dsh.client.inject.includes('@deepseek-ai/dsh-client-ui-conversation'))
   assert.ok(packageJson.dsh.client.inject.includes('@deepseek-ai/dsh-client-ui-input-trigger'))

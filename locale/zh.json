@@ -1,4 +1,6 @@
 {
+  "language": "注释界面语言",
+  "languageAuto": "跟随 DSH",
   "annotate": "注释",
   "annotateTitle": "为选中文本添加注释",
   "addTitle": "添加注释",

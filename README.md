@@ -15,7 +15,7 @@ Comment on a passage without filling your message box with copied text. A DeepSe
 - Keep the composer compact. No extra footer counter or permanent comments toolbar.
 - Restore comments after refresh **within the same browser tab**, using `sessionStorage`; there is no account/cloud synchronization.
 - Scope each overlay to its own conversation pane; ambiguous ownership fails closed instead of choosing the first transcript.
-- Follow the DSH locale service (`en`, `zh-*` → Simplified Chinese); other locales fall back to English. Already inserted chip labels update without changing reference identity or text offsets.
+- **Default to Simplified Chinese**, regardless of the browser or DSH language. Choose English or opt into following DSH from the existing comment dialog. Missing/unsupported host locales fall back to Simplified Chinese. Already inserted chip labels update without changing reference identity or text offsets.
 - Respect IME composition, busy submissions, keyboard focus, Escape and reduced motion.
 
 ## Install
@@ -35,9 +35,19 @@ The deployable client bundle is committed, so installation does not need a build
 
 If a running installation does not reload the new host entry, finish in-flight work and perform a normal reload/restart. Do not start another server to replace an existing GUI, and do not assume arbitrary source edits hot-reload.
 
+## UI language (0.3.1)
+
+The shipped default is **`zh-CN`**, including an English browser/DSH installation and clients without a locale service. In any comment editor/list, the small language selector offers **简体中文**, **English**, and **跟随 DSH / Follow DSH** (`auto`). Selection applies to all this plugin's panes in the current client instance; refresh/HMR resets it to the client composition default. No new settings page, browser preference storage, or profile changes are involved.
+
+Client integrators can pass `{ locale: 'zh-CN' | 'en' | 'auto' }` as the second argument to the browser contribution's `apply(ctx, config)`. Omitted/invalid choices select Chinese. This is a **low-level client-composition option**, not a claim that a server/profile Cordis entry forwards configuration into the client. The browser exports `setLocalePreference(value)` / `getLocalePreference()` for client integrations; ordinary users can use the dialog selector instead.
+
+Only `auto` follows the optional DSH locale service: `en`/`en-*`/`en_*` select English; `zh` variants use the Simplified Chinese dictionary; missing/unsupported values fall back to Chinese. Explicit English is not overridden by host changes. Reference IDs, `[CommentN]` clipboard tokens and serialized XML remain language-independent. **Upgrade note:** 0.3.0 always followed DSH; choose `auto` to restore that behavior.
+
 ## Use
 
-1. Select a passage in the conversation transcript. Click **Comment**.
+The steps below use English labels; select **English** in the dialog if desired (the default labels are Chinese).
+
+1. Select a passage in the conversation transcript. Click **注释 / Comment**.
 2. Write the comment and choose **Add comment** (`Ctrl/⌘+Enter`). Escape cancels.
 3. A numbered badge appears near the passage; a compact **Comment N** reference is inserted into the existing draft.
 4. Click the badge/reference to edit, delete, add it again, or open **All comments**. **Delete all comments** also removes their draft references and this plugin's tab cache for that session.
@@ -82,7 +92,7 @@ npm pack --dry-run
 
 The locale dictionaries are in `locale/en.json` and `locale/zh.json`. Build validates equal keys/parameters and generates `lib/client.js`; edit the source/dictionaries, not the generated bundle. Reference IDs/source/clipboard tokens are stable and never translated.
 
-For a visual fixture, open `demo/index.html` after `npm ci`. `?lang=zh-CN&seed=1` shows Chinese examples; `?lang=en&dual=1` mounts two **real React dock contributions** against synthetic host adapters. Previewing submitted context does not contact a model.
+For a visual fixture, open `demo/index.html` after `npm ci` (Chinese by default). `?lang=zh-CN&seed=1` shows Chinese examples; `?lang=en&locale=en&dual=1` mounts two **real React dock contributions** in English. `lang` controls the synthetic host language, while `locale` is the client preference: `?lang=en&dual=1` deliberately keeps the plugin Chinese, and `?lang=en&locale=auto&dual=1` follows the English host. Previewing submitted context does not contact a model.
 
 The optional Chromium harness uses an already-running, dedicated headless browser with a loopback CDP port (`CDP_PORT`, default 9333):
 

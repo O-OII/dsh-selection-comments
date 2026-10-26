@@ -2,7 +2,7 @@
 (() => {
   const h = React.createElement
   const params = new URLSearchParams(location.search)
-  let language = params.get('lang') || 'en'
+  let language = params.get('lang') || 'zh-CN'
   const transcriptZh = /^zh/.test(language)
   const localeListeners = new Set(), disposers = [], sources = new Map()
   let Dock
@@ -18,7 +18,7 @@
     effect(fn) { const off = fn(); if (typeof off === 'function') disposers.push(off); return off },
     inject(names, fn) { if (names[0] === 'locale') fn({ locale, effect: ctx.effect }) },
   }
-  plugin.apply(ctx)
+  plugin.apply(ctx, { locale: params.get('locale') ?? undefined })
   function makeStore(id) {
     let state = { phase: 'plain', draft: '', occurrences: [] }
     const listeners = new Set(), calls = []
@@ -108,7 +108,7 @@
   }
   window.commentDemo = { api, stores, sources, select, setLocale, seed, disposers }
   document.getElementById('seed').addEventListener('click', seed)
-  document.getElementById('language').addEventListener('click', () => setLocale(/^zh/.test(language) ? 'en' : 'zh-CN'))
+  document.getElementById('language').addEventListener('click', () => { api.setLocalePreference('auto'); setLocale(/^zh/.test(language) ? 'en' : 'zh-CN') })
   chromeText()
   if (params.get('seed') === '1') setTimeout(seed, 150)
 })()

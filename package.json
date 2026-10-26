@@ -1,8 +1,8 @@
 {
   "name": "@o-oii/dsh-selection-comments",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "type": "module",
-  "description": "Anchored conversation comments for DeepSeek Harness, with compact draft references, tab-scoped recovery, and English/Chinese UI.",
+  "description": "DeepSeek Harness 会话选区注释：编号锚点、紧凑草稿引用、标签页恢复，默认简体中文，可选英文或跟随 DSH。",
   "license": "MIT",
   "author": "O-OII",
   "repository": {

@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="zh-CN">
+<html lang="en">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -54,7 +54,7 @@
         throw new Error(`unexpected external module: ${id}`);
       });
       const plugin = window.__selectionCommentPlugin;
-      plugin.__test.setLocale('zh');
+      // No forced locale: verify the shipped Chinese default on an English page.
       const testApi = plugin.__test;
       const sessionId = 'synthetic-session-A';
       window.__input = { phase: 'plain', draft: 'existing draft', occurrences: [] };

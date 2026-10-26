@@ -2,16 +2,19 @@
 
 This is an initial external plugin release, not a certification of every DSH or browser version.
 
-| Layer | Evidence at initial preparation |
+| Layer | Local evidence for 0.3.1 (2026-10-26) |
 |---|---|
 | Intended host contracts | DSH 0.2.1-rc.2: semantic draft InputActions, inputTriggers reference codec, conversation.input.dock and optional client locale service |
-| Node tests | 31 tests passed locally on Windows Node 22.22.3; English/Chinese keys, metadata, codec, missing/aborted refs, storage reload/failure, duplicate offsets and pane ownership helpers |
-| Chromium legacy fixture | 75 checks passed using the actual client against synthetic transcript/input adapters; includes the historical unregistered status helper, not a production footer |
-| React release fixture | 22 checks passed with two real React dock contributions: pane ownership, locale/unsaved note, IME, busy state, focus/inert, reference labels, XML/HTML text and no footer |
-| Same-tab refresh | Browser fixture reload recovered both comments and serialized both restored references; host draft restoration was synthetic |
+| Node tests | 37 tests passed on Windows Node 22.22.3; Chinese default with English browser/host, explicit English, opt-in auto, missing/unsupported locale fallback, client config, preference-only notifications, plus existing keys/metadata/codec/storage/offsets/pane coverage |
+| Chromium legacy fixture | 76 checks passed with English navigator/page and the unconfigured Chinese client; includes the historical unregistered status helper, not a production footer |
+| React release fixture | 28 checks passed with two real React dock contributions: English host still defaults Chinese, accessible in-dialog English/auto selection, host-change isolation, unsupported fallback, cross-pane selector updates, unsaved input, IME, busy/focus/inert, labels/XML/HTML and no footer |
+| Same-tab refresh | 4 browser checks passed: resets transient auto to default Chinese despite English browser/host, restores both sessions and serializes full notes; host draft restoration remains synthetic |
+| Build / package | build + check passed; pack smoke verified 18 published files, 0.3.1 package/lock parity, and default/English/auto/fallback behavior from the extracted client |
 | Demo images | Real plugin/React rendered over synthetic transcript/input/locale fixtures. They are explicitly labelled and contain no private session |
 | CI | Node 22/24 checks and a dedicated Chromium fixture job; the actual current Actions result is authoritative, not this planned matrix |
 | Not established | Real installed DSH sink/remote provider delivery, all Desktop builds/platforms, mobile selection menus, cross-tab/fork persistence or multi-window real Host transport |
+
+`apply(ctx, { locale })` is a low-level client-composition option; no profile/server-to-client forwarding is assumed. Ordinary users can select Chinese/English/auto in the existing dialog. Selection is transient per client instance and resets on refresh/HMR; no new persistence or installation/profile changes were made.
 
 The package uses no copied ASAR implementation. DSH remains in developer preview and can change contracts. An engine range only expresses intended API compatibility; it is not proof of testing every release in that range.
 
@@ -22,6 +25,7 @@ npm ci --ignore-scripts
 npm run build
 npm run check
 npm test
+npm run pack:smoke
 # With a dedicated Chromium listening on loopback CDP_PORT (default 9333):
 npm run test:browser
 ```
@@ -30,6 +34,8 @@ The browser script loads local fixture files, not the existing DSH URL. A real-h
 
 ## 中文
 
-本地通过了 31 项 Node 测试、75 项历史合成浏览器检查、22 项真实 React dock 的双会话夹具检查，并验证同标签页刷新后的引用恢复。原历史 status helper 没有在生产注册，不应理解为恢复了底部入口。
+0.3.1 本地通过了 37 项 Node 测试、76 项历史合成浏览器检查、28 项真实 React dock 双会话检查与 4 项同标签页刷新检查；浏览器 navigator/page 和合成宿主均显式英文，插件仍默认中文。新增覆盖弹窗英文/auto 选择、宿主变化隔离、不支持语言回退、跨会话同步与刷新后恢复默认。build/check 与 18 文件的 pack smoke 通过，解包后的客户端也验证中文默认/显式英文/auto/回退。原历史 status helper 没有在生产注册，不应理解为恢复了底部入口。
+
+`apply(ctx, { locale })` 是底层客户端组合参数，不保证 profile/服务端配置会传入浏览器；普通用户可用现有注释弹窗标题旁的小选择器。选择只存于客户端实例内存，刷新/HMR 后恢复组合配置默认值。本轮不新增持久化，也不修改安装或 profile。
 
 所有浏览器检查的正文、输入/语言/宿主适配仍为合成；不能据此保证实际 DSH 发送 sink、远端模型、所有平台或新版本均已验收。当前 Actions 结果应以 GitHub 实际运行记录为准。真实部署请另在隔离 profile 检查，不动现用配置来演示，不未经同意调用收费模型。

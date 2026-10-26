@@ -6,23 +6,43 @@ window.__ModuleLoader__.load({
     var React = require("react");
 
     const MESSAGES = __DSH_COMMENT_MESSAGES__;
-    let activeLocale = "en";
+    let activeLocale = "zh";
+    let localePreference = "zh-CN";
+    let hostLocale;
     const localeListeners = new Set();
     function t(key, params = {}) {
-      const template = MESSAGES[activeLocale]?.[key] ?? MESSAGES.en[key] ?? key;
+      const template = MESSAGES[activeLocale]?.[key] ?? MESSAGES.zh[key] ?? key;
       return template.replace(/\{(\w+)\}/g, (_, name) => String(params[name] ?? `{${name}}`));
     }
     function setLocale(locale) {
-      const next = /^zh(?:[-_]|$)/i.test(String(locale)) ? "zh" : "en";
+      const next = /^en(?:[-_]|$)/i.test(String(locale)) ? "en" : "zh";
       if (next === activeLocale) return;
       activeLocale = next;
       for (const listener of localeListeners) listener();
     }
+    // A fresh installation stays Chinese even when the host or browser is English.
+    function setLocalePreference(locale) {
+      const previous = localePreference, previousActive = activeLocale;
+      localePreference = locale === "auto" ? "auto" : /^en(?:[-_]|$)/i.test(String(locale)) ? "en" : "zh-CN";
+      setLocale(localePreference === "auto" ? hostLocale : localePreference);
+      if (previous !== localePreference && previousActive === activeLocale) {
+        for (const listener of localeListeners) listener();
+      }
+    }
+    function getLocalePreference() { return localePreference; }
     function subscribeLocale(listener) { localeListeners.add(listener); return () => localeListeners.delete(listener); }
     function attachLocale(service) {
-      const sync = () => setLocale(service?.getSnapshot?.()?.active ?? "en");
+      const sync = () => {
+        hostLocale = service?.getSnapshot?.()?.active;
+        if (localePreference === "auto") setLocale(hostLocale);
+      };
       sync();
-      return service?.subscribe?.(sync) ?? (() => {});
+      const off = service?.subscribe?.(sync);
+      return () => {
+        off?.();
+        hostLocale = undefined;
+        if (localePreference === "auto") setLocale(undefined);
+      };
     }
     function uniqueTranscript() {
       if (typeof document === "undefined") return null;
@@ -134,6 +154,9 @@ window.__ModuleLoader__.load({
         font: 400 14px/1.55 var(--ds-font-family-ui, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif);
       }
       .sc-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+      .sc-head-actions { display: flex; align-items: center; gap: 6px; }
+      .sc-language { max-width: 124px; min-height: 30px; border: 1px solid var(--dsw-alias-border-l3, #d0d7de); border-radius: 6px; background: var(--dsw-alias-bg-base, #ffffff); color: inherit; font: inherit; font-size: 12px; }
+      .sc-language:focus-visible { outline: 2px solid var(--dsw-alias-state-business-primary, #2563eb); outline-offset: 2px; }
       .sc-title { margin: 0; font-size: 16px; line-height: 24px; font-weight: 650; letter-spacing: 0.01em; }
       .sc-subtitle { margin: 2px 0 0; color: var(--dsw-alias-label-tertiary, #6b7280); font-size: 12px; line-height: 18px; }
       .sc-close { flex: none; width: 30px; height: 30px; padding: 0; border: 0; border-radius: 8px; background: transparent; color: var(--dsw-alias-label-tertiary, #6b7280); font: 22px/28px ui-sans-serif, system-ui, sans-serif; cursor: pointer; }
@@ -1179,7 +1202,22 @@ window.__ModuleLoader__.load({
       const closeButton = makeElement("button", "sc-close", "×");
       closeButton.type = "button";
       closeButton.setAttribute("aria-label", t("close"));
-      head.append(titleBox, closeButton);
+      const headActions = makeElement("div", "sc-head-actions");
+      const languageSelect = makeElement("select", "sc-language");
+      for (const [value, label] of [["zh-CN", "简体中文"], ["en", "English"], ["auto", t("languageAuto")]]) {
+        const option = makeElement("option", "", label);
+        option.value = value; languageSelect.append(option);
+      }
+      const renderLanguageSelect = () => {
+        languageSelect.value = localePreference;
+        languageSelect.title = t("language");
+        languageSelect.setAttribute("aria-label", t("language"));
+        languageSelect.querySelector('option[value="auto"]').textContent = t("languageAuto");
+      };
+      renderLanguageSelect();
+      languageSelect.addEventListener("change", () => setLocalePreference(languageSelect.value));
+      headActions.append(languageSelect, closeButton);
+      head.append(titleBox, headActions);
       dialog.append(head);
 
       const list = makeElement("div", "sc-list");
@@ -1807,6 +1845,7 @@ window.__ModuleLoader__.load({
       window.addEventListener("resize", onResize);
 
       const localeOff = subscribeLocale(() => {
+        renderLanguageSelect();
         button.textContent = t("annotate"); button.title = t("annotateTitle"); button.setAttribute("aria-label", button.title);
         closeButton.setAttribute("aria-label", t("close")); quoteLabel.textContent = t("quoteLabel"); noteLabel.textContent = t("noteLabel");
         deleteButton.textContent = t("delete"); listButton.textContent = t("allComments"); clearButton.textContent = t("clearAll");
@@ -2003,8 +2042,10 @@ window.__ModuleLoader__.load({
     /**
      * Activate the browser contribution.
      * @param {import("@deepseek-ai/cordis").Context} ctx - client context.
+     * @param {{locale?: 'zh-CN' | 'en' | 'auto'}} [config] - client-composition preference, not server/profile config.
      */
-    function apply(ctx) {
+    function apply(ctx, config = {}) {
+      setLocalePreference(config?.locale);
       if (typeof ctx.inject === "function") ctx.inject(["locale"], (scoped) => scoped.effect(() => attachLocale(scoped.locale), "selection-comments: locale"));
       ctx.effect(() => ctx.inputTriggers.registerSource(createSelectionCommentSource()), "selection-comment: reference codec");
       ctx.slots.inject("conversation.input.dock", () =>
@@ -2020,9 +2061,11 @@ window.__ModuleLoader__.load({
     }
 
     exports.apply = apply;
+    exports.setLocalePreference = setLocalePreference;
+    exports.getLocalePreference = getLocalePreference;
     exports.inject = ["slots", "inputTriggers"];
     exports.__test = {
-      t, setLocale, attachLocale, subscribeLocale, localizedDraft, transcriptForSeat, uniqueTranscript, cacheErrors,
+      t, setLocale, setLocalePreference, getLocalePreference, attachLocale, subscribeLocale, localizedDraft, transcriptForSeat, uniqueTranscript, cacheErrors,
       normalizeSelectedText,
       isEligibleSelectionElement,
       placeFloatingButton,
