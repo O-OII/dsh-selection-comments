@@ -76,14 +76,15 @@
       store.set({ phase: 'submitting', draft: '', occurrences: [] })
       setTimeout(() => store.set({ phase: 'plain' }), 60)
     }
-    return h('section', { className: 'pane', 'data-demo-pane': store.id },
+    return h('section', { className: 'pane', 'data-demo-pane': store.id, 'data-conversation-content': '', 'data-conversation-session': store.id },
       h('div', { className: 'pane-head' }, h('span', { className: 'dot' }), zh ? `示例会话 ${index + 1}` : `Example conversation ${index + 1}`),
       h('div', { 'data-conversation-scroll': '' }, h('div', { 'data-chat-flow': '' },
         h('div', { 'data-chat-flow-kind': 'user', 'data-chat-turn': '1' }, h('div', { className: 'role' }, zh ? '你' : 'You'), h('p', { className: 'message user' }, zh ? '请帮我检查这个发布计划，重点关注可靠性。' : 'Review this release plan, with a focus on reliability.')),
         h('div', { 'data-chat-flow-kind': 'assistant', 'data-chat-turn': '1' }, h('div', { className: 'role' }, zh ? '助手' : 'Assistant'),
+          h('div', { 'data-step-process-content': '', 'data-chat-flow': '' },
           h('p', { className: 'message', 'data-demo-selectable': 'main' }, transcriptZh ? '可靠的发布需要可重复的测试、明确的权限边界，以及出现问题时可执行的回滚方案。' : 'A reliable release needs repeatable tests, explicit permission boundaries, and a practical rollback plan.'),
           h('p', { className: 'message', 'data-demo-selectable': 'second' }, transcriptZh ? '说明哪些验证已完成，也要坦诚列出仍未验证的实际环境。' : 'Document what was verified, and be explicit about real environments that were not tested.'),
-          h('pre', { className: 'code' }, 'check → test → review → release'),
+          h('pre', { className: 'code' }, 'check → test → review → release')),
         ),
         output && h('div', { 'data-chat-flow-kind': 'user', 'data-demo-sent': '' },
           h('div', { className: 'role' }, zh ? '你' : 'You'),

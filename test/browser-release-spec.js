@@ -9,6 +9,11 @@ async () => {
   const visibleButtons = () => shadows().map(shadow => shadow.querySelector('.sc-button')).filter(button => !button.hidden)
   const currentShadow = () => shadows().find(shadow => !shadow.querySelector('.sc-backdrop').hidden)
   check('real React slot contribution mounted two seat-scoped overlays', hosts().length === 2)
+  check('SDK-contract fixture contains a nested process flow in each occurrence', demo.stores.every(store => document.querySelector(`[data-demo-pane="${store.id}"]`).querySelectorAll('[data-chat-flow]').length === 2))
+  check('nested process flows resolve to the outer transcript of their own occurrence', demo.stores.every(store => {
+    const pane = document.querySelector(`[data-demo-pane="${store.id}"]`)
+    return api.transcriptForSeat(pane.querySelector('[data-selection-comments-seat]'), store.id) === pane.querySelector('[data-chat-flow]')
+  }))
   check('default is Chinese despite an English host service and page', api.getLocalePreference() === 'zh-CN' && document.documentElement.lang === 'en' && shadows().every(shadow => shadow.querySelector('.sc-button').textContent === '注释'))
   const chosenA = demo.select('public-demo-A', 'main', 24, 40)
   await sleep(70)

@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.3.3 — 2026-10-27
+
+- Fix a real-host selection regression: rc.3 marks both the outer ChatView and nested ChatGroupSeat process content with `data-chat-flow`. The old raw count incorrectly rejected one conversation as multiple panes.
+- Resolve the outer transcript within the nearest `data-conversation-content` occurrence, verify its `data-conversation-session` against the dock, and distinguish nested process groups from embedded/parallel conversation occurrences. Legacy layouts retain the nearest unambiguous ancestor path; no first-global-flow fallback.
+- Check both selection endpoints as well as their common ancestor, retaining composer exclusions and foreign-occurrence rejection. Body-mounted ShadowRoot, sent cards, primary tokens and model/reference serialization are unchanged.
+- Add DOM ownership regressions and optional assertions against supplied official rc.3 bundles; update the browser fixture to include real SDK occurrence attributes and nested process flows, rather than only one synthetic flow per pane.
+
+修复实际宿主划词无按钮：rc.3 正文根与分组过程都使用 `data-chat-flow`，此前直接计数把同一会话的嵌套区域误判为多会话。改为最近 Conversation occurrence＋会话 ID 绑定，仅计算该 occurrence 的外层正文根；嵌套过程不再误拒，真正嵌入/并列会话仍隔离。选区首尾与共同祖先都验证，不回退到全局首项；模型载荷、发送卡片、按钮皮肤与 ShadowRoot 保持不变。新增真实 SDK 属性契约回归，并修正原先过简的浏览器夹具。
+
 ## 0.3.2 — 2026-10-27
 
 - Render sent selection comments through the official optional `uiConversation.userText` rule registry and keyed `conversation.user.text.node` Slot, with compact quotation/comment cards, expansion, accessible labels and inline queue previews.

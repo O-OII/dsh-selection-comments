@@ -2,6 +2,18 @@
 
 This is an external plugin release, not a certification of every DSH or browser version.
 
+## 0.3.3 grouped-transcript selection fix / 分组正文划词修复（2026-10-27）
+
+The previous 147 synthetic browser assertions did **not** establish real-session selection compatibility. The original demo had only one `data-chat-flow` per pane; real rc.3 ChatView and nested ChatGroupSeat content both expose that attribute. Raw descendant counts therefore disabled the selection action in a grouped conversation. Inspection of the supplied official rc.3 bundles and the older installed prototype identified this difference.
+
+0.3.3 resolves only outer transcript roots within the nearest `data-conversation-content`, checks `data-conversation-session` against the dock, and rejects foreign embedded occurrences at the selection boundary. Genuine parallel roots remain ambiguous/fail-closed; legacy layouts without occurrence attributes use the nearest unambiguous ancestry path. The fix changes extension ownership checks without rewriting stored sessions.
+
+- Build/check and **57 Node tests passed** with `DSH_CONVERSATION_BUNDLE` set to the supplied exact rc.3 bundle. This includes eight new ownership/official-attribute contract tests. Without the optional bundle path the normal result is 55 passed plus two explicit skips. Pack smoke passed with 27 published files, version 0.3.3 package/lock parity and byte-identical generated client; `git diff --check` passed.
+- The React browser fixture now carries official occurrence/session attributes and a nested process flow per pane. Its full isolated Chromium rerun passed **149 assertions (76 + 30 + 31 + 8 + 4)**, including two new ownership assertions. This remains separate from the installed-session acceptance below; static/fixture tests alone do not certify the live GUI.
+- **Actual current GUI acceptance:** after official local installation of 0.3.3, a real rc.3 conversation with five flows/one outer root passed an 18-character paragraph selection, visible action hit-testing at both document and ShadowRoot levels, trusted pointer activation, and opening the actual **Add comment** dialog with the exact 18-character quote and empty note. Cancel then hid the backdrop/dialog, restored all background inert state and left zero annotation badges. Nothing was saved or sent; no model call was made. An earlier element screenshot's `scrollIntoView` hid the action via its existing scroll handler; the successful interaction used trusted coordinates without scrolling, not a z-index workaround.
+
+此前 147 项合成浏览器断言**没有**证明真实会话划词兼容：夹具每个 pane 仅一个 flow，而 rc.3 根正文和分组过程均有该属性，原始计数使真实分组会话误拒。0.3.3 按最近官方 occurrence、会话 ID 和外层 flow 绑定，嵌套过程可用、真实跨会话仍拒绝。提供精确 rc.3 bundle 路径时 57 项 Node 全通过；不提供时 55 通过、2 明确跳过。不把 SDK 静态检查或修正后的夹具当成已实际操作当前 GUI。**本机真实验收已通过：** 官方安装 0.3.3 后，在含 5 个 flow、1 个外层根的 rc.3 实际会话中选择正文 18 字，按钮通过 document/ShadowRoot 两级命中检查，可信坐标点击打开真实「添加注释」弹窗，原文 18 字、注释为空；取消后弹窗不可见、背景 inert 全解除、角标为 0。未保存、未发送、未调用模型。此前元素截图的 `scrollIntoView` 触发既有滚动隐藏逻辑，并非层叠缺陷；成功点击没有用改 z-index 或强制 DOM click 绕过。另已完整重跑隔离 Chromium 回归：149 项断言（76+30+31+8+4）全部通过，含双会话嵌套 flow 新用例。
+
 ## 0.3.2 sent-card and skin update / 发送卡片与配色更新（2026-10-27）
 
 - **Official seam verified by inspection:** the supplied DSH 0.2.1 and current 0.2.1-rc.3 conversation package document `uiConversation.userText.register` and the keyed inline `conversation.user.text.node` Slot. The host owns raw-text fallback and original Copy/Edit text. No ASAR implementation is copied into the package; no live installation/configuration was changed.

@@ -11,6 +11,7 @@ Comment on conversation passages in DeepSeek Harness Web/Desktop, without fillin
 ## Features
 
 - Select text to add a comment, with a numbered badge anchored beside the passage.
+- **0.3.3:** Keep selection actions working in DSH's grouped/nested process flows while isolating separate conversation panes.
 - Keep quote + comment in one compact draft reference; expand both when submitting.
 - **0.3.2:** Read sent quotes/comments as compact, expandable cards instead of raw XML tags, including compatible message history.
 - Edit, delete, or re-add a comment from its badge/reference; review everything in **All comments**.

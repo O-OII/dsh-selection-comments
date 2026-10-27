@@ -87,7 +87,7 @@ test('host half imports without side effects', () => {
 
 test('package and bundle identities line up for the DSH client scanner', () => {
   assert.equal(packageJson.name, '@o-oii/dsh-selection-comments')
-  assert.equal(packageJson.version, '0.3.2')
+  assert.equal(packageJson.version, '0.3.3')
   const lock = JSON.parse(readFileSync(new URL('../package-lock.json', import.meta.url), 'utf8'))
   assert.equal(lock.version, packageJson.version)
   assert.equal(lock.packages[''].version, packageJson.version)

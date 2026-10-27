@@ -229,7 +229,7 @@ test('ambiguous transcript ownership fails closed instead of choosing the first 
 })
 test('selection eligibility is constrained to the owning transcript root', () => {
   const { api } = load()
-  const element = { nodeType: 1, closest(selector) { return selector.includes('data-composer') ? null : {} } }
+  const element = { nodeType: 1, closest(selector) { return selector.includes('data-composer') || selector === '[data-conversation-content]' ? null : {} } }
   assert.equal(api.isEligibleSelectionElement(element, null), false)
   assert.equal(api.isEligibleSelectionElement(element, { contains: () => false }), false)
   assert.equal(api.isEligibleSelectionElement(element, { contains: () => true }), true)
