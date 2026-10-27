@@ -83,8 +83,8 @@ window.__ModuleLoader__.load({
         padding: 6px 13px 6px 11px;
         border: 1px solid color-mix(in srgb, var(--dsw-alias-border-l3, #d0d7de) 70%, transparent);
         border-radius: 999px;
-        background: var(--dsw-alias-label-primary, #1f2328);
-        color: var(--dsw-alias-bg-base, #ffffff);
+        background: var(--dsw-alias-button-primary-fill, #1f2328);
+        color: var(--dsw-alias-label-primary-foreground, #ffffff);
         box-shadow: 0 6px 20px rgba(15, 23, 42, 0.18), 0 1px 2px rgba(15, 23, 42, 0.12);
         font: 500 13px/18px var(--ds-font-family-ui, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif);
         letter-spacing: 0.01em;
@@ -95,7 +95,7 @@ window.__ModuleLoader__.load({
         animation: sc-pop 120ms ease-out;
       }
       .sc-button::before { content: "✎"; font-size: 13px; line-height: 1; opacity: 0.9; }
-      .sc-button:hover { filter: brightness(1.08); }
+      .sc-button:hover { background: var(--dsw-alias-button-primary-hover, #343a40); }
       .sc-button:focus-visible, .sc-badge:focus-visible { outline: 2px solid var(--dsw-alias-state-business-primary, #2563eb); outline-offset: 2px; }
       @keyframes sc-pop {
         from { opacity: 0; transform: translateY(3px) scale(0.97); }
@@ -239,8 +239,9 @@ window.__ModuleLoader__.load({
       }
       .sc-secondary { border: 1px solid var(--dsw-alias-border-l3, #d0d7de); background: transparent; color: var(--dsw-alias-label-primary, #1f2328); }
       .sc-secondary:hover { background: var(--dsw-alias-interactive-bg-hover, #f3f4f6); }
-      .sc-primary { border: 1px solid transparent; background: var(--dsw-alias-state-business-primary, #2563eb); color: #ffffff; }
-      .sc-primary:hover { filter: brightness(1.06); }
+      .sc-primary { border: 1px solid transparent; background: var(--dsw-alias-button-primary-fill, #1f2328); color: var(--dsw-alias-label-primary-foreground, #ffffff); }
+      .sc-primary:hover { background: var(--dsw-alias-button-primary-hover, #343a40); }
+      .sc-primary:focus-visible { outline: 2px solid var(--dsw-alias-state-business-primary, #2563eb); outline-offset: 2px; }
       .sc-primary:disabled { opacity: 0.55; cursor: default; filter: none; }
       .sc-danger { border: 1px solid transparent; background: transparent; color: var(--dsw-alias-state-error-primary, #dc2626); }
       .sc-danger:hover { background: color-mix(in srgb, var(--dsw-alias-state-error-primary, #dc2626) 8%, transparent); }
@@ -762,6 +763,83 @@ window.__ModuleLoader__.load({
         `<note>${escapeContextText(annotation.note.trim())}</note>`,
         `</selection_comment>`,
       ].join("\n");
+    }
+
+    // Display-only projection of the durable codec text. Never consult mutable tab
+    // annotations here: old messages must keep their own quote/note after edits,
+    // deletion, refresh, or opening history in another tab.
+    const SENT_NODE_ID = "selection-comment";
+    function decodeContextText(value) {
+      const entities = { amp: "&", lt: "<", gt: ">" };
+      return value.replace(/&(amp|lt|gt);/g, (_, entity) => entities[entity]);
+    }
+    function createSentCommentRule() {
+      return {
+        id: SENT_NODE_ID,
+        order: 20,
+        match(text, from) {
+          // Only the plugin's complete wire grammar is recognized. Unknown attrs,
+          // nested/raw HTML and incomplete blocks remain ordinary original text.
+          // Negated '<' classes make even malformed long input linear to scan.
+          const pattern = /<selection_comment index="([1-9]\d*)">\s*<quote>([^<]*)<\/quote>\s*<note>([^<]*)<\/note>\s*<\/selection_comment>/g;
+          pattern.lastIndex = from;
+          for (let found; (found = pattern.exec(text)) !== null;) {
+            const number = Number(found[1]);
+            if (!Number.isSafeInteger(number)) continue;
+            return { id: SENT_NODE_ID, start: found.index, end: pattern.lastIndex,
+              data: { number, quote: decodeContextText(found[2]), note: decodeContextText(found[3]) } };
+          }
+          return undefined;
+        },
+      };
+    }
+    const SENT_STYLE_TEXT = `
+      .sc-sent-card { box-sizing: border-box; display: block; min-width: 0; max-width: 100%; margin: 4px 0; padding: 10px 12px; border: 1px solid var(--dsw-alias-border-l3, #d0d7de); border-radius: 10px; background: var(--dsw-alias-bg-layer-1, #ffffff); color: var(--dsw-alias-label-primary, #1f2328); font: inherit; line-height: 1.5; white-space: normal; overflow-wrap: anywhere; }
+      .sc-sent-card .sc-sent-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 6px; font-size: 12px; font-weight: 600; }
+      .sc-sent-card .sc-sent-quote { display: block; margin: 0 0 7px; padding-inline-start: 9px; border-inline-start: 2px solid var(--dsw-alias-border-l3, #d0d7de); color: var(--dsw-alias-label-secondary, #4b5563); font-size: 13px; white-space: pre-wrap; }
+      .sc-sent-card .sc-sent-note { display: block; font-size: 13px; white-space: pre-wrap; }
+      .sc-sent-card[data-expanded="false"] .sc-sent-quote, .sc-sent-card[data-expanded="false"] .sc-sent-note { display: -webkit-box; -webkit-box-orient: vertical; overflow: hidden; -webkit-line-clamp: 3; }
+      .sc-sent-card[data-expanded="false"] .sc-sent-note { -webkit-line-clamp: 4; }
+      .sc-sent-card[data-expanded="true"] .sc-sent-body { display: block; max-height: 50vh; overflow: auto; }
+      .sc-sent-card .sc-sent-toggle { flex: none; border: 0; border-radius: 4px; padding: 2px 4px; background: transparent; color: var(--dsw-alias-label-secondary, #4b5563); font: inherit; font-weight: 400; cursor: pointer; }
+      .sc-sent-card .sc-sent-toggle:hover { background: var(--dsw-alias-interactive-bg-hover, #f3f4f6); }
+      .sc-sent-card .sc-sent-toggle:focus-visible { outline: 2px solid var(--dsw-alias-state-business-primary, #2563eb); outline-offset: 2px; }
+    `;
+    function SentCommentNode({ node, interactive = false }) {
+      const [expanded, setExpanded] = React.useState(false);
+      const [, redrawLocale] = React.useState(0);
+      React.useEffect(() => subscribeLocale(() => redrawLocale((n) => n + 1)), []);
+      const { number, quote, note } = node.data;
+      const label = t("label", { number });
+      // Queue/noninteractive previews must remain inline so the owner's ellipsis
+      // policy still works, without altering its copy/edit/original text currency.
+      if (!interactive) return React.createElement("span", { "data-selection-comment-preview": "" }, `${label} · “${quote}” — ${note}`);
+      return React.createElement("span", { className: "sc-sent-card", role: "group", "aria-label": label, "data-expanded": String(expanded), "data-selection-comment-card": String(number) },
+        React.createElement("span", { className: "sc-sent-head" },
+          React.createElement("span", null, label),
+          React.createElement("button", { type: "button", className: "sc-sent-toggle", "aria-expanded": expanded,
+            "aria-label": t(expanded ? "collapseSent" : "expandSent", { number }),
+            onClick: () => setExpanded((value) => !value) }, t(expanded ? "collapse" : "expand"))),
+        React.createElement("span", { className: "sc-sent-body" },
+          React.createElement("span", { className: "sc-sent-quote", "aria-label": t("quoteLabel") }, quote),
+          React.createElement("span", { className: "sc-sent-note", "aria-label": t("noteLabel") }, note)));
+    }
+    function registerSentComments(ctx) {
+      // Optional service injection keeps the existing composer working on older
+      // hosts. The official Factory retains raw text if this seam is unavailable.
+      if (typeof ctx.uiConversation?.userText?.register !== "function") return;
+      ctx.effect(() => {
+        if (typeof document === "undefined") return;
+        const style = makeElement("style");
+        style.setAttribute("data-selection-comment-sent-styles", "");
+        style.textContent = SENT_STYLE_TEXT;
+        document.head.append(style);
+        return () => style.remove();
+      }, "selection-comment: scoped card stylesheet");
+      ctx.effect(() => ctx.uiConversation.userText.register(createSentCommentRule()), "selection-comment: sent text rule");
+      ctx.slots.inject("conversation.user.text.node", () => ctx.slots.register({
+        name: "conversation.user.text.node", key: SENT_NODE_ID, priority: 100,
+      }, SentCommentNode));
     }
 
     /**
@@ -2046,7 +2124,10 @@ window.__ModuleLoader__.load({
      */
     function apply(ctx, config = {}) {
       setLocalePreference(config?.locale);
-      if (typeof ctx.inject === "function") ctx.inject(["locale"], (scoped) => scoped.effect(() => attachLocale(scoped.locale), "selection-comments: locale"));
+      if (typeof ctx.inject === "function") {
+        ctx.inject(["locale"], (scoped) => scoped.effect(() => attachLocale(scoped.locale), "selection-comments: locale"));
+        ctx.inject(["uiConversation"], registerSentComments);
+      } else registerSentComments(ctx);
       ctx.effect(() => ctx.inputTriggers.registerSource(createSelectionCommentSource()), "selection-comment: reference codec");
       ctx.slots.inject("conversation.input.dock", () =>
         ctx.slots.register(
@@ -2066,6 +2147,7 @@ window.__ModuleLoader__.load({
     exports.inject = ["slots", "inputTriggers"];
     exports.__test = {
       t, setLocale, setLocalePreference, getLocalePreference, attachLocale, subscribeLocale, localizedDraft, transcriptForSeat, uniqueTranscript, cacheErrors,
+      createSentCommentRule, SentCommentNode, registerSentComments, decodeContextText, STYLE_TEXT, SENT_STYLE_TEXT,
       normalizeSelectedText,
       isEligibleSelectionElement,
       placeFloatingButton,

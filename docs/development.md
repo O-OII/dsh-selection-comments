@@ -47,7 +47,7 @@ Use a fresh **isolated browser context** for each language, viewport **1280 × 8
 2. **Selection and references:** select the first 42 UTF-16 units of the first English paragraph (15 for Chinese). Capture while the actual selection action, badges 1/2 and compact references are visible → `docs/images/comments-{en,zh-CN}.png`.
 3. Clear the selection, click the first compact reference, and capture the **Edit comment #1 / 编辑注释 #1** dialog, including its visible language selector → `docs/images/editor-{en,zh-CN}.png`.
 4. Choose **All comments / 全部注释** and capture the real manager with both entries and bulk-delete action → `docs/images/manager-{en,zh-CN}.png`.
-5. Close the dialog and choose **Preview submitted context / 预览提交内容**. Check that both quotes/notes appear inside `<selection_comment>` XML; this is a local fixture check, not model delivery.
+5. Close the dialog and choose **Preview submitted context / 预览提交内容**. Scroll the conversation area to the bottom and capture the actual quotation/comment cards → `docs/images/sent-cards-{en,zh}.png`. Expand **Model context (raw text)** separately to verify the complete `<selection_comment>` wire text. The cards are production components with public synthetic adapters, not live DSH transport or model delivery.
 
 | Note | English | 简体中文 |
 |---|---|---|
@@ -58,9 +58,17 @@ For structured browser automation, use the `my-agent-browser` skill's MCP `new_p
 
 每种语言使用全新隔离上下文、1280 × 820 视口和 100% 缩放，按上表填入公开示例注释。第一张选择英文首段前 42 个 UTF-16 单元/中文前 15 个，保留真实选区按钮与编号引用；第二张点击第一条引用，展示含语言选择器的编辑弹窗；第三张进入「全部注释」。截图为真实浏览器渲染，不手画系统界面、不使用私人数据；字体、光标和 toast 时机可略有差异，不承诺 PNG 字节完全相同。
 
+## Sent-message integration / 发送后消息集成
+
+The client optionally injects `uiConversation`, registers one pure synchronous `userText` matcher, and contributes the `selection-comment` key to `conversation.user.text.node`. It does not replace the message renderer, intercept copy/edit actions, modify stored messages, or import private host code. Rules return exact original substring ranges plus JSON display data. `&amp;`, `&lt;`, `&gt;` decode exactly once and React text children render the result safely. The stylesheet is plugin-owned, prefix-scoped and disposed with the contribution; the existing selection overlay remains in its body-mounted ShadowRoot.
+
+The public demo implements only a labelled synthetic Factory/Slot adapter, not the host scheduler. To additionally check the real supplied DSH scheduler without copying it into this repository, set `DSH_CONVERSATION_BUNDLE` to its `@deepseek-ai/dsh-client-ui-conversation/lib/client.js` bundle and run `npm test`. That optional test evaluates its isolated `UserTextDocument` module and passes the actual plugin rule to it; it does not start or modify the host. Without this environment variable the one integration test is explicitly skipped.
+
+通过可选服务注入与官方规则/Slot 扩展发送后展示，不替换整条消息、不拦截复制/编辑、不改写持久化文本或导入私有宿主模块。规则保留精确原文区间，实体只解码一次，由 React 文本子节点安全输出；前缀限定的插件样式随贡献释放。可用 `DSH_CONVERSATION_BUNDLE` 指向已提供的官方 bundle，额外运行真实调度器兼容性测试，不复制宿主实现、不启动宿主；不设置时该项明确跳过。
+
 ## Browser regression and test boundaries / 浏览器回归与边界
 
-The optional Chromium harness uses an already-running, dedicated headless browser with loopback CDP (`CDP_PORT`, default 9333):
+The optional Chromium harness uses an already-running, dedicated headless browser with loopback CDP (`CDP_PORT`, default 9333). Besides the existing overlay/locale/reload suites, `test/browser-sent-spec.js` checks the production matcher/renderer after a synthetic send and against historical raw tags. It covers escaping, expansion and original-text Copy/Edit adapters. The driver forces native Chromium `hover` / `focus-visible` CSS states to check both filled buttons across light, dark, transparent-base and missing-token cases; it does not replace pseudo-classes with test CSS:
 
 ```sh
 npm run test:browser

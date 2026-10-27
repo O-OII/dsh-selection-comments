@@ -1,6 +1,19 @@
 # Compatibility and evidence / 兼容性与证据
 
-This is an initial external plugin release, not a certification of every DSH or browser version.
+This is an external plugin release, not a certification of every DSH or browser version.
+
+## 0.3.2 sent-card and skin update / 发送卡片与配色更新（2026-10-27）
+
+- **Official seam verified by inspection:** the supplied DSH 0.2.1 and current 0.2.1-rc.3 conversation package document `uiConversation.userText.register` and the keyed inline `conversation.user.text.node` Slot. The host owns raw-text fallback and original Copy/Edit text. No ASAR implementation is copied into the package; no live installation/configuration was changed.
+- **Local automated evidence:** build/check and 49 Node tests passed, including the real React server renderer, literal HTML safety, one-pass entity decoding, historical snapshots after local edits/deletion, exact text ranges, normal/missing-service registrations and the supplied official `UserTextDocument` scheduler. Standard `npm test` runs 48 tests plus one explicit skip unless `DSH_CONVERSATION_BUNDLE` is set.
+- **Browser evidence:** all 147 assertions passed on a dedicated isolated Chromium: 76 legacy overlay/status-helper checks, 28 two-pane React checks, 31 new send/history/card/skin checks, 8 native Chromium hover/focus CSS-state combinations (two primary actions × light/dark/transparent/missing-token) and 4 same-tab refresh checks. These use public synthetic transcript/input/locale/Factory adapters, not a live installed DSH session. Copy/Edit assertions test original-text adapters, not real Host clipboard/edit menus. The legacy status helper is still unregistered in production.
+- **Build / package:** build/check, fixture/driver syntax checks, `git diff --check` and pack smoke passed; 25 published files, version 0.3.2 package/lock parity and byte-identical generated client verified.
+- **Compatibility fallback:** composer functionality retains the declared rc.2 baseline; rich sent cards additionally require the optional official user-text seam. Hosts lacking it retain raw sent XML. Malformed/noncanonical historical blocks remain ordinary text. Sent cards are read-only message snapshots; local comment edits do not mutate them.
+- **Not established:** remote model delivery, actual installed host clipboard/edit menus and all skin/browser/desktop versions. The previously published README screenshots show composer/editor/manager states, not new sent-card acceptance.
+
+0.3.2 已通过 build/check 与 49 项 Node 测试（含真实 React 安全渲染及所提供官方 rc.3 调度器）；标准运行未配置官方 bundle 路径时为 48 通过、1 项明确跳过。专用隔离 Chromium 完整通过 147 项断言（76+28+31+8+4），覆盖发送/历史卡片、展开/转义/语言、浅色/深色/透明/缺 token 与真实 CSS hover/focus 状态；复制/编辑仍为保留原文的合成适配，并非实际宿主菜单。打包 smoke 通过 25 文件白名单、0.3.2 版本/lock 一致与 bundle 字节一致。只使用官方可选扩展，缺接口保留 XML；不改模型载荷与宿主复制/编辑原文，本仓库改动不涉及实际安装/配置。尚不能据此宣称真实宿主复制菜单、远端模型和所有皮肤均已验收。
+
+## Historical evidence / 历史证据
 
 | Layer | Local evidence for 0.3.1 (2026-10-26) |
 |---|---|

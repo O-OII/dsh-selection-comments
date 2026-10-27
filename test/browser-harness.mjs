@@ -367,6 +367,47 @@ try {
   if (releaseResult.exceptionDetails) throw new Error(releaseResult.exceptionDetails.exception?.description ?? releaseResult.exceptionDetails.text)
   assert.ok(releaseResult.result.value.results.every(item => item.pass))
   console.log(JSON.stringify({ scope: 'React dock with synthetic host adapters', ...releaseResult.result.value }, null, 2))
+  const sentSpec = readFileSync(new URL('./browser-sent-spec.js', import.meta.url), 'utf8')
+  const sentResult = await send('Runtime.evaluate', { expression: '(' + sentSpec + ')()', awaitPromise: true, returnByValue: true })
+  if (sentResult.exceptionDetails) throw new Error(sentResult.exceptionDetails.exception?.description ?? sentResult.exceptionDetails.text)
+  assert.ok(sentResult.result.value.results.every(item => item.pass))
+  console.log(JSON.stringify({ scope: 'Sent/history cards and skin tokens with synthetic adapters', ...sentResult.result.value }, null, 2))
+  await send('DOM.enable'); await send('CSS.enable')
+  const tree = await send('DOM.getDocument', { depth: -1, pierce: true })
+  const findClass = (node, name) => {
+    const attrs = node.attributes || []
+    const value = attrs[attrs.indexOf('class') + 1]
+    if (attrs.includes('class') && value.split(/\s+/).includes(name)) return node.nodeId
+    for (const child of [...(node.children || []), ...(node.shadowRoots || [])]) { const found = findClass(child, name); if (found) return found }
+  }
+  const primaryNodes = ['sc-button', 'sc-primary'].map(name => ({ name, id: findClass(tree.root, name) }))
+  assert.ok(primaryNodes.every(node => node.id), 'Expected both primary actions in the ShadowRoot')
+  const states = [
+    ['light', '#1f2328', '#fff', '#343a40', 'rgb(52, 58, 64)'],
+    ['dark', '#f4f4f5', '#18181b', '#d4d4d8', 'rgb(212, 212, 216)'],
+    ['transparent', '#2a49a8', '#fff', '#203a8c', 'rgb(32, 58, 140)'],
+    ['fallback', null, null, null, 'rgb(52, 58, 64)'],
+  ]
+  const pseudoResults = []
+  try {
+    await send('Runtime.evaluate', { expression: 'window.__sentPreviousBodyStyle = document.body.getAttribute("style")' })
+    for (const [name, fill, fg, hover, expected] of states) {
+      await send('Runtime.evaluate', { expression: `(() => { const theme = ${JSON.stringify({ name, fill, fg, hover })}; for (const [key, value] of Object.entries({ 'button-primary-fill': theme.fill, 'label-primary-foreground': theme.fg, 'button-primary-hover': theme.hover })) { if (value) document.body.style.setProperty('--dsw-alias-' + key, value); else document.body.style.removeProperty('--dsw-alias-' + key); } document.body.style.setProperty('--dsw-alias-bg-base', theme.name === 'transparent' || theme.name === 'fallback' ? 'transparent' : '#fff'); })()` })
+      for (const node of primaryNodes) {
+        await send('CSS.forcePseudoState', { nodeId: node.id, forcedPseudoClasses: ['hover', 'focus-visible'] })
+        const computed = await send('Runtime.evaluate', { expression: `(() => { const style = getComputedStyle(document.querySelector('[data-selection-comment-ui]').shadowRoot.querySelector('.${node.name}')); return { background: style.backgroundColor, outline: style.outlineStyle, width: style.outlineWidth, offset: style.outlineOffset }; })()`, returnByValue: true })
+        assert.equal(computed.result.value.background, expected, `${name}/${node.name} hover`)
+        assert.equal(computed.result.value.outline, 'solid', `${name}/${node.name} focus outline`)
+        assert.equal(computed.result.value.width, '2px')
+        assert.equal(computed.result.value.offset, '2px')
+        pseudoResults.push({ theme: name, action: node.name, pass: true, computed: computed.result.value })
+        await send('CSS.forcePseudoState', { nodeId: node.id, forcedPseudoClasses: [] })
+      }
+    }
+  } finally {
+    await send('Runtime.evaluate', { expression: 'if (window.__sentPreviousBodyStyle === null) document.body.removeAttribute("style"); else document.body.setAttribute("style", window.__sentPreviousBodyStyle); delete window.__sentPreviousBodyStyle' })
+  }
+  console.log(JSON.stringify({ scope: 'Native Chromium hover/focus CSS states', checkCount: pseudoResults.length, results: pseudoResults }, null, 2))
   await send('Page.reload')
   for (let attempt = 0; attempt < 100; attempt += 1) {
     try {

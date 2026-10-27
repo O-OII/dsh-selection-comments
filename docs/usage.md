@@ -39,6 +39,14 @@ The DSH reference codec expands quote and note together at submit time:
 
 提交时原文与注释一起展开为上述文本；XML 转义不等于防模型提示注入，选区内容仍是不可信的用户文本。存储、传输和保留边界见[隐私说明](privacy.md)。
 
+## Sent cards and historical messages / 发送后与历史消息卡片
+
+On hosts exposing the official `uiConversation.userText` registry and `conversation.user.text.node` Slot, the same serialized text above displays as a numbered card with a quotation and comment. The default view shows up to three quote lines and four comment lines; **Expand** reveals the complete scrollable content. Queue/noninteractive previews remain inline. This is a display-only projection: model payloads, message Copy/Edit and exported/plain text keep the original complete wire text, not an unresolvable number.
+
+Compatible historical multiline or compact `<selection_comment index="N"><quote>…</quote><note>…</note></selection_comment>` blocks also render from their own contents. Editing/deleting a local annotation does not rewrite a sent card; these cards are immutable message snapshots, not the unsent annotation editor. History rendering needs no current tab cache. Unsupported attributes, nested/raw HTML, invalid indices and incomplete tags remain plain text. If the host lacks the official extension seam, the composer still works and sent messages retain their raw text; there is no DOM-rewriting fallback.
+
+宿主具备上述官方扩展接口时，发送后的同一段 XML 显示为含编号、原文与注释的卡片，默认原文最多三行、注释四行；「展开」可滚动阅读完整内容，队列/非交互预览保持行内。只改变展示，不改变模型上下文、消息复制/编辑及导出/纯文本所用的完整原文。历史消息按自身内容渲染，不依赖标签页缓存；本地编辑/删除不会改写已发送内容，卡片不是未发送注释的编辑入口。无法识别、不完整、含未知属性或嵌套/裸 HTML 的块保留纯文本；宿主缺少接口时同样保留原始 XML，不使用正文 DOM 改写补丁。
+
 ## UI language / 界面语言
 
 The shipped default is **`zh-CN`**, even in an English browser/DSH installation or without a locale service. The existing editor/list offers **简体中文**, **English**, and **跟随 DSH / Follow DSH** (`auto`). The choice affects this plugin's panes in the current client instance; refresh/HMR resets it to the client composition default. It is not a saved browser preference and does not change a profile or add a settings page.

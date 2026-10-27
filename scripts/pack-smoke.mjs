@@ -50,7 +50,7 @@ for (const [code, title] of [['en', 'Selection Comments'], ['zh', '选区注释'
   assert.equal(messages.meta, undefined, 'Display metadata must not enter runtime UI dictionaries')
 }
 assert.deepEqual(fs.readFileSync(path.join(out, 'package/lib/client.js')), fs.readFileSync(path.join(root, 'lib/client.js')), 'Packaging must not change the generated client')
-assert.equal(packed.version, '0.3.1')
+assert.equal(packed.version, '0.3.2')
 assert.equal(metadata.version, packed.version)
 assert.equal(lock.version, packed.version)
 assert.equal(lock.packages[''].version, packed.version)

@@ -4,7 +4,7 @@
   const params = new URLSearchParams(location.search)
   let language = params.get('lang') || 'zh-CN'
   const transcriptZh = /^zh/.test(language)
-  const localeListeners = new Set(), disposers = [], sources = new Map()
+  const localeListeners = new Set(), disposers = [], sources = new Map(), textRules = new Map(), textRenderers = new Map()
   let Dock
   const locale = {
     getSnapshot: () => ({ active: language, locales: ['en', 'zh'], revision: 1 }),
@@ -14,11 +14,32 @@
   const api = plugin.__test
   const ctx = {
     inputTriggers: { registerSource(source) { sources.set(source.name, source); return () => sources.delete(source.name) } },
-    slots: { inject(_name, fn) { fn() }, register(_metadata, component) { Dock = component; return () => {} } },
+    uiConversation: { userText: { register(rule) { textRules.set(rule.id, rule); return () => textRules.delete(rule.id) } } },
+    slots: { inject(_name, fn) { fn() }, register(metadata, component) {
+      if (metadata.name === 'conversation.input.dock') Dock = component
+      else if (metadata.name === 'conversation.user.text.node') textRenderers.set(metadata.key, component)
+      return () => textRenderers.delete(metadata.key)
+    } },
     effect(fn) { const off = fn(); if (typeof off === 'function') disposers.push(off); return off },
-    inject(names, fn) { if (names[0] === 'locale') fn({ locale, effect: ctx.effect }) },
+    inject(names, fn) { if (names[0] === 'locale') fn({ locale, effect: ctx.effect }); else if (names[0] === 'uiConversation') fn(ctx) },
   }
   plugin.apply(ctx, { locale: params.get('locale') ?? undefined })
+  // Synthetic Factory adapter only; production rendering is owned by DSH's
+  // conversation.user.text Factory, not by this public fixture.
+  function UserText({ text, interactive = true }) {
+    const children = []
+    let from = 0
+    while (from < text.length) {
+      const candidates = [...textRules.values()].map(rule => rule.match(text, from)).filter(Boolean).sort((a, b) => a.start - b.start)
+      const node = candidates[0]
+      if (!node) { children.push(text.slice(from)); break }
+      if (node.start > from) children.push(text.slice(from, node.start))
+      const Renderer = textRenderers.get(node.id)
+      children.push(Renderer ? h(Renderer, { key: `${node.id}:${node.start}`, node, raw: text.slice(node.start, node.end), interactive }) : text.slice(node.start, node.end))
+      from = node.end
+    }
+    return h('span', { 'data-demo-user-text': '', style: { whiteSpace: 'pre-wrap' } }, ...children)
+  }
   function makeStore(id) {
     let state = { phase: 'plain', draft: '', occurrences: [] }
     const listeners = new Set(), calls = []
@@ -47,6 +68,7 @@
     React.useEffect(() => { const fn = () => redrawLocale(n => n + 1); localeListeners.add(fn); return () => localeListeners.delete(fn) }, [])
     const zh = /^zh/.test(language)
     const [output, setOutput] = React.useState('')
+    store.showSent = setOutput
     const submit = async () => {
       const serialized = new Map()
       for (const reference of input.occurrences) serialized.set(reference.ref, await sources.get(reference.source).codec.serialize(reference.ref))
@@ -63,6 +85,9 @@
           h('p', { className: 'message', 'data-demo-selectable': 'second' }, transcriptZh ? '说明哪些验证已完成，也要坦诚列出仍未验证的实际环境。' : 'Document what was verified, and be explicit about real environments that were not tested.'),
           h('pre', { className: 'code' }, 'check → test → review → release'),
         ),
+        output && h('div', { 'data-chat-flow-kind': 'user', 'data-demo-sent': '' },
+          h('div', { className: 'role' }, zh ? '你' : 'You'),
+          h('div', { className: 'message user' }, h(UserText, { text: output }))),
       )),
       h('div', { className: 'composer', 'data-composer-seat': '' },
         h('div', { className: 'draft', 'data-composer-input': '' },
@@ -70,7 +95,7 @@
         ),
         h('div', { 'data-composer-dock': '' }, h(Dock, { sessionId: store.id, inputActions: store.actions, useInput: store.useInput })),
         h('div', { className: 'composer-footer' }, h('span', null, zh ? '紧凑引用 · 提交时展开原文与注释' : 'Compact references · Quote + comment expand on submit'), h('button', { className: 'send', onClick: submit }, zh ? '预览提交内容' : 'Preview submitted context')),
-        h('pre', { className: 'output', hidden: !output }, output),
+        output && h('details', null, h('summary', null, zh ? '模型上下文（原始文本）' : 'Model context (raw text)'), h('pre', { className: 'output' }, output)),
       ),
     )
   }
@@ -109,7 +134,7 @@
     }
     getSelection().removeAllRanges()
   }
-  window.commentDemo = { api, stores, sources, select, setLocale, seed, disposers }
+  window.commentDemo = { api, stores, sources, textRules, textRenderers, UserText, select, setLocale, seed, disposers }
   document.getElementById('seed').addEventListener('click', seed)
   document.getElementById('language').addEventListener('click', () => { api.setLocalePreference('auto'); setLocale(/^zh/.test(language) ? 'en' : 'zh-CN') })
   chromeText()

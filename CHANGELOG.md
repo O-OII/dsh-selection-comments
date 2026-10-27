@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.3.2 — 2026-10-27
+
+- Render sent selection comments through the official optional `uiConversation.userText` rule registry and keyed `conversation.user.text.node` Slot, with compact quotation/comment cards, expansion, accessible labels and inline queue previews.
+- Keep model serialization, semantic draft references and host Copy/Edit original text unchanged. Re-render compatible historical raw tags without depending on tab storage; malformed/unrecognized blocks and hosts without this seam retain ordinary raw text.
+- Escape through React text children only; no `innerHTML`, transcript rewriting, event interception or private host imports. The existing floating overlay stays body-mounted in its ShadowRoot.
+- Use the matched `button-primary-fill` / `label-primary-foreground` / `button-primary-hover` family for both filled actions, with an opaque matched fallback that does not use possibly transparent `bg-base` as text.
+- Add Node/real React safety and supplied-host scheduler tests, send/history and skin browser scenarios, update the public demo, bilingual documentation and generated bundle.
+
+通过官方可选 userText 规则与 keyed Slot 将发送后及兼容历史消息显示为可展开的原文/注释卡片，队列保持行内预览；模型 XML、草稿引用语义与宿主复制/编辑的原文不变。历史展示不依赖本地注释缓存；格式不完整或宿主缺少扩展接口时保留原始文本，不改写正文 DOM。浮动与弹窗主按钮统一使用匹配的填充/前景/悬停 token 和不透明回退，兼容透明 bg-base。更新生成产物、双语文档与回归测试。
+
 ## 0.3.1 — 2026-10-26
 
 - Default the shipped UI and missing/unsupported locale fallback to Simplified Chinese, independent of browser or DSH language.

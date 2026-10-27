@@ -1,6 +1,6 @@
 {
   "name": "@o-oii/dsh-selection-comments",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "type": "module",
   "description": "DeepSeek Harness 会话选区注释：编号锚点、紧凑草稿引用、标签页恢复，默认简体中文，可选英文或跟随 DSH。",
   "license": "MIT",
@@ -52,7 +52,7 @@
   "scripts": {
     "build": "node scripts/build.mjs",
     "check": "node scripts/build.mjs --check && node --check index.mjs && node --check lib/client.js",
-    "test": "node --test test/selection-comment.test.mjs test/release.test.mjs",
+    "test": "node --test test/selection-comment.test.mjs test/release.test.mjs test/sent-comments.test.mjs",
     "test:browser": "node test/browser-harness.mjs",
     "pack:smoke": "node scripts/pack-smoke.mjs"
   },
